@@ -56,6 +56,7 @@ instance NFData Output where
     rnf (OutputError x) = rnf x
     rnf OutputMissing = ()
 
+{-
 -- | Number of time to retry sending messages
 maxRetryCount :: Int
 maxRetryCount = 3
@@ -63,6 +64,7 @@ maxRetryCount = 3
 -- | Timeout between each message sending attempt
 retryTimeout :: Seconds
 retryTimeout = 10
+-}
 
 
 send :: (Host,Port) -> Input -> IO LBS.ByteString
@@ -74,10 +76,14 @@ send (host,port) Input{..} = do
     m <- newManager conduitManagerSettings
     withs (map (uncurry withBigStringPart) inputBody) $ \parts -> do
         body <- formDataBody parts req
+        responseBody <$> httpLbs body m
+{-
+    -- http-client 0.5 completely changes this API, so give up retrying until it can be tested
         responseBody <$> retrySleep retryTimeout maxRetryCount isConnFailure (httpLbs body m)
     where
         isConnFailure FailedConnectionException2{} = True
         isConnFailure _ = False
+-}
 
 
 server :: Port -> (Input -> IO Output) -> IO ()
